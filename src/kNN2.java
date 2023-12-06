@@ -5,9 +5,22 @@ import java.io.IOException;
 import java.util.*;
 
 public class kNN2 {
+    public static void main(String[] args) {
+        kNN2 instance = new kNN2();
+        instance.load_all_Data();
+        instance.normalise_all_data();
 
-    Boolean use_min_max_normalisation = false;
-    Integer k = 3;
+        // find knn for all test data
+        ArrayList<ArrayList> training_results = instance.calculate_knn_array_for(instance.train_data, instance.test_data);
+        ArrayList<Integer> predictions = instance.get_predictions(training_results);
+        Double percentage_predicted = instance.percentage_of_matching_labels(predictions, instance.test_label);
+        System.out.println(predictions);
+        System.out.println(instance.test_label);
+        System.out.println(percentage_predicted);
+        instance.write_out_predictions(predictions, "output2.txt");
+    }
+    Boolean use_min_max_normalisation = true;
+    Integer k = 1;
     Integer minkowski_distance = 1;
     ArrayList<ArrayList> train_data = new ArrayList<ArrayList>();
     ArrayList<ArrayList> test_data = new ArrayList<ArrayList>();
@@ -72,23 +85,58 @@ public class kNN2 {
 
     public void normalise_all_data() {
         if(this.use_min_max_normalisation){
-            this.min_max_mornalise(this.train_data, this.test_data);
+            this.min_max_normalise(this.train_data, this.test_data);
         }
     }
-    public void min_max_mornalise(ArrayList<ArrayList> trainData, ArrayList<ArrayList> testData) {
-        ArrayList<Double> flattened_array = new ArrayList<Double>();
+    public void min_max_normalise(ArrayList<ArrayList> trainData, ArrayList<ArrayList> testData) {
         ArrayList<ArrayList> joined_array = new ArrayList<ArrayList>();
         joined_array.addAll(trainData);
         joined_array.addAll(testData);
+        ArrayList<ArrayList> min_max_array = this.get_min_max_matrix(joined_array);
+        for (int i_row=0; i_row < joined_array.size(); i_row++) {
+            ArrayList<Double> row = joined_array.get(i_row);
+            for (int i_column=0; i_column < row.size(); i_column++) {
+                Double min_value = (Double) min_max_array.getFirst().get(i_column);
+                Double max_value = (Double) min_max_array.getLast().get(i_column);
+                row.set(i_column, (this.normalise(row.get(i_column), min_value, max_value)));
+            }
+        }
+    }
 
-        //Collections.sort(joined_array);
-        Double max_value = Double.MAX_VALUE;
-        Double min_value = Double.MIN_VALUE;
+    private Double normalise(Double a_double, Double min_value, Double max_value) {
+        return (a_double - min_value) / (max_value - min_value);
+    }
+
+    private ArrayList<ArrayList> get_min_max_matrix(ArrayList<ArrayList> joined_array) {
+
+        ArrayList<ArrayList> min_max_matrix = new ArrayList<ArrayList>();
+        ArrayList<Double> min_row = new ArrayList();
+        ArrayList<Double> max_row = new ArrayList();
+        min_max_matrix.add(min_row);
+        min_max_matrix.add(max_row);
+
+            for (int i_col=0; i_col < joined_array.getFirst().size(); i_col++) {
+                min_row.add(Double.MAX_VALUE);
+                max_row.add(Double.MIN_VALUE);
+            }
+
+        for (int i_row=0; i_row < joined_array.size(); i_row++) {
+            ArrayList<Double> row = joined_array.get(i_row);
+
+                for (int i_col=0; i_col < row.size(); i_col++) {
+                    if(row.get(i_col) > max_row.get(i_col)){
+                        max_row.set(i_col, row.get(i_col));
+                    }
+                    if(row.get(i_col) < min_row.get(i_col)){
+                        min_row.set(i_col, row.get(i_col));
+                    }
+                }
+            }
+        return min_max_matrix;
     }
     public ArrayList<ArrayList> calculate_knn_array_for(ArrayList training_array, ArrayList testing_array) {
 
         ArrayList<ArrayList> result = new ArrayList<ArrayList>();
-
 
         for (int i=0; i < testing_array.size(); i++) {
             ArrayList<Double> testing_row = (ArrayList<Double>) testing_array.get(i);
@@ -229,25 +277,5 @@ public class kNN2 {
             System.out.println("An error occurred.");
             e.printStackTrace();
         }
-    }
-    public static void main(String[] args) {
-        kNN2 instance = new kNN2();
-        instance.load_all_Data();
-        instance.normalise_all_data();
-        //System.out.println(instance.train_data);
-        //System.out.println(instance.test_data);
-        //System.out.println(instance.test_label);
-        //System.out.println(instance.train_label);
-
-        // find knn for all test data
-        ArrayList<ArrayList> training_results = instance.calculate_knn_array_for(instance.train_data, instance.test_data);
-        System.out.println(training_results);
-        ArrayList<Integer> predictions = instance.get_predictions(training_results);
-        Double percentage_predicted = instance.percentage_of_matching_labels(predictions, instance.test_label);
-        System.out.println(predictions);
-        System.out.println(instance.test_label);
-        System.out.println(percentage_predicted);
-        instance.write_out_predictions(predictions, "output2.txt");
-
     }
 }
