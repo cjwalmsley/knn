@@ -3,6 +3,8 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Scanner;
+import java.io.IOException;
+import java.io.FileWriter;   // Import the FileWriter class
 
 public class knn_class {
     ArrayList<ArrayList> train_data = new ArrayList<ArrayList>();
@@ -129,5 +131,52 @@ public class knn_class {
         System.out.println(predictions.size());
         System.out.println((float) matching_predictions / (float) predictions.size());
         return (float) (((float)matching_predictions / (float) predictions.size()) * 100.0f);
+    }
+    public void write_out_predictions(ArrayList<Integer> predictions, String filename) {
+        //create the file if it does not exist already
+        try {
+            File myObj = new File(filename);
+                if (myObj.createNewFile()) {
+                    System.out.println("File created: " + myObj.getName());
+                    }
+                else {
+                        System.out.println("File already exists.");
+                    }
+                }
+        catch (IOException e) {
+                    System.out.println("An error occurred.");
+                    e.printStackTrace();
+                }
+        //write out the file
+        try {
+            FileWriter myWriter = new FileWriter(filename);
+            for (int i: predictions) {
+                myWriter.write(String.valueOf(i));
+                myWriter.write(" ");
+            }
+            myWriter.close();
+            System.out.println("Successfully wrote to the file.");
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+            }
+    public static void main(String[] args) {
+        knn_class instance = new knn_class();
+        instance.load_all_Data();
+        System.out.println(instance.train_data);
+        System.out.println(instance.test_data);
+        System.out.println(instance.test_label);
+        System.out.println(instance.train_label);
+
+        // find knn for all test data
+        ArrayList<ArrayList> training_results = instance.calculate_knn_array_for(instance.train_data, instance.test_data);
+        ArrayList<Integer> predictions = instance.get_predictions(training_results, instance.train_label);
+        Float percentage_predicted = instance.percentage_of_matching_labels(predictions, instance.test_label);
+        System.out.println(predictions);
+        System.out.println(instance.test_label);
+        System.out.println(percentage_predicted);
+        instance.write_out_predictions(predictions, "output.txt");
+
     }
 }

@@ -1,46 +1,182 @@
-import java.io.File;  // Import the File class
-import java.io.FileNotFoundException;  // Import this class to handle errors
-import java.util.Scanner; // Import the Scanner class to read text files
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.io.IOException;
+import java.io.FileWriter;   // Import the FileWriter class
 
 public class kNN1 {
-    ArrayList<Float> train_data = new ArrayList<Float>();
-    /*
-Load all the data (similar to the class work, after setting the required declarations)
-• Implement the necessary codes to compute Euclidean distance measures of the
-test data from the training data, to obtain the predicted labels (using k=1) and the
-classification accuracy.
-• Compile and run. As the test data labels are provided, you should be able to obtain
-the classification accuracy. This will be the benchmark accuracy that you will need
-to improve for Part B.
-• The predicted labels of the test data should also be generated in the output1.txt
-file in the manner prescribed below (write the codes for this). In the first line, there
-will be a single line of 200 values in the file with either 0 or 1 representing the
-predicted class of the test data with a single space between the predicted labels.
-• You may wish to compile and run your kNN1.java to ensure that it runs correctly
-on raptor as markers will re-compile and run this kNN1.java which will generate
-the predicted labels in output1.txt. Using the predicted labels in output1.txt,
-markers will obtain the classification accuracy to be used in the marking scheme.
-• You need to place your solution file:
-kNN1.java
-in:/proj/comp8250/ga/xyz
- */
-    public void loadData() {
-        // load the data into an array
-         try {
-             File myObj = new File("train_data.txt");
-             Scanner myReader = new Scanner(myObj);
-                    while (myReader.hasNextFloat()) {
-                        this.train_data.add(myReader.nextFloat());
-                        System.out.println(this.train_data );
-                    }
-                    myReader.close();
-                } catch (FileNotFoundException e) {
-                    System.out.println("An error occurred.");
-                    e.printStackTrace();
-                }
-            }
+    ArrayList<ArrayList> train_data = new ArrayList<ArrayList>();
+    ArrayList<ArrayList> test_data = new ArrayList<ArrayList>();
+    ArrayList<Integer> train_label = new ArrayList<Integer>();
+    ArrayList<Integer> test_label = new ArrayList<Integer>();
 
-    public void load_Data() {
+    public void load_all_Data() {
+        this.train_data = this.load_float_Data("test_data.txt");
+        this.test_data = this.load_float_Data("train_data.txt");
+        this.train_label = this.load_int_Data("test_label.txt").get(0);
+        this.test_label = this.load_int_Data("train_label.txt").get(0);
+    }
+
+    public ArrayList<ArrayList> load_float_Data(String filename) {
+        // load the data into an array
+
+        ArrayList<ArrayList> data = new ArrayList<>();
+
+        try {
+            File myObj = new File(filename);
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String line_data = myReader.nextLine();
+                ArrayList<Float> line_array = new ArrayList<Float>();
+                Scanner stringScanner = new Scanner(line_data);
+                while (stringScanner.hasNextFloat()) {
+                    line_array.add(stringScanner.nextFloat());
+                }
+                data.add(line_array);
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        return data;
+    }
+    public ArrayList<ArrayList> load_int_Data(String filename) {
+        // load the data into an array
+
+        ArrayList<ArrayList> data = new ArrayList<>();
+
+        try {
+            File myObj = new File(filename);
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String line_data = myReader.nextLine();
+                ArrayList<Integer> line_array = new ArrayList<Integer>();
+                Scanner stringScanner = new Scanner(line_data);
+                while (stringScanner.hasNextInt()) {
+                    line_array.add(stringScanner.nextInt());
+                }
+                data.add(line_array);
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        return data;
+    }
+    public ArrayList<ArrayList> calculate_knn_array_for(ArrayList training_array, ArrayList testing_array) {
+
+        ArrayList<ArrayList> result = new ArrayList<ArrayList>();
+
+        for (int i=0; i < testing_array.size(); i++) {
+            ArrayList<Float> testing_row = (ArrayList<Float>) testing_array.get(i);
+            ArrayList training_index_and_knn_index = new ArrayList<ArrayList>();
+            training_index_and_knn_index.add(i);
+            training_index_and_knn_index.add(this.row_index_of_knn_for(testing_row, training_array));
+            result.add(training_index_and_knn_index);
+        };
+        return result;
+    }
+    public Integer row_index_of_knn_for (ArrayList<Float> testing_row, ArrayList<ArrayList> training_array) {
+
+        Integer result = 0;
+        Float closest_knn = (float) 1000.0f;
+        for (int i=0; i < training_array.size(); i++)
+        {
+            ArrayList<Float> training_row = (ArrayList<Float>) training_array.get(i);
+            Float knn = this.compute_distance_between(training_row, testing_row);
+            if(knn < closest_knn) {
+                result = i;
+                closest_knn = knn;
+            }
+        }
+        return result;
+    }
+    public Float compute_distance_between(ArrayList<Float> training_row, ArrayList<Float> testing_row) {
+
+        Iterator<Float> training_values = training_row.iterator();
+        Iterator<Float> testing_values = testing_row.iterator();
+
+        Float total = 0.0f;
+        while (training_values.hasNext() && testing_values.hasNext()) {
+            total = (float) (total + Math.pow((training_values.next() - testing_values.next()), 2));
+        }
+        return (float) Math.sqrt(total);
+    }
+
+    public ArrayList<Integer> get_predictions (ArrayList<ArrayList> training_results, ArrayList<Integer> training_labels) {
+
+        ArrayList<Integer> result = new ArrayList<>();
+        for (int i=0; i < training_results.size(); i++)
+        {
+            ArrayList<Integer> result_row = (ArrayList<Integer>) training_results.get(i);
+            Integer predicted_value = training_labels.get(result_row.get(1));
+            result.add(predicted_value);
+        }
+        return result;
+    }
+
+    public Float percentage_of_matching_labels(ArrayList<Integer> predictions, ArrayList<Integer> test_labels) {
+        Integer matching_predictions = 0;
+        for (int i=0; i < predictions.size(); i++)
+        {
+            if(predictions.get(i).equals(test_labels.get(i))){
+                matching_predictions ++;
+            }
+        }
+        System.out.println(matching_predictions);
+        System.out.println(predictions.size());
+        System.out.println((float) matching_predictions / (float) predictions.size());
+        return (float) (((float)matching_predictions / (float) predictions.size()) * 100.0f);
+    }
+    public void write_out_predictions(ArrayList<Integer> predictions, String filename) {
+        //create the file if it does not exist already
+        try {
+            File myObj = new File(filename);
+            if (myObj.createNewFile()) {
+                System.out.println("File created: " + myObj.getName());
+            }
+            else {
+                System.out.println("File already exists.");
+            }
+        }
+        catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+        //write out the file
+        try {
+            FileWriter myWriter = new FileWriter(filename);
+            for (int i: predictions) {
+                myWriter.write(String.valueOf(i));
+                myWriter.write(" ");
+            }
+            myWriter.close();
+            System.out.println("Successfully wrote to the file.");
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+    }
+    public static void main(String[] args) {
+        kNN1 instance = new kNN1();
+        instance.load_all_Data();
+        System.out.println(instance.train_data);
+        System.out.println(instance.test_data);
+        System.out.println(instance.test_label);
+        System.out.println(instance.train_label);
+
+        // find knn for all test data
+        ArrayList<ArrayList> training_results = instance.calculate_knn_array_for(instance.train_data, instance.test_data);
+        ArrayList<Integer> predictions = instance.get_predictions(training_results, instance.train_label);
+        Float percentage_predicted = instance.percentage_of_matching_labels(predictions, instance.test_label);
+        System.out.println(predictions);
+        System.out.println(instance.test_label);
+        System.out.println(percentage_predicted);
+        instance.write_out_predictions(predictions, "output1.txt");
+
     }
 }
